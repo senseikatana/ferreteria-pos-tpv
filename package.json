@@ -1,4 +1,7 @@
 {
   "name": "ferreteria-tpv",
-  "packageManager": "yarn@4.18.0"
+  "packageManager": "yarn@4.18.0",
+  "dependencies": {
+    "bcrypt": "^6.0.0"
+  }
 }
