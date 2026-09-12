@@ -96,23 +96,41 @@ const openSearchModal = () => {
   searchQuery.value = ''
   searchResults.value = []
   feedbackMessage.value = ''
+  loadAllProducts()
   nextTick(() => {
     searchInputRef.value?.focus()
   })
+}
+
+// Cargar todos los productos del inventario
+const loadAllProducts = async () => {
+  searchLoading.value = true
+  try {
+    const res = await get<Product[]>('products')
+    if (res.ok && res.data) {
+      searchResults.value = res.data
+    }
+  } catch {
+    searchResults.value = []
+  } finally {
+    searchLoading.value = false
+  }
 }
 
 // Buscar productos por nombre, categoría o código
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 const searchProducts = async () => {
   const q = searchQuery.value.trim()
+
+  if (searchTimeout) clearTimeout(searchTimeout)
+
+  // Sin texto: mostrar todo el catálogo
   if (q.length < 1) {
-    searchResults.value = []
+    loadAllProducts()
     return
   }
 
   searchLoading.value = true
-
-  if (searchTimeout) clearTimeout(searchTimeout)
 
   searchTimeout = setTimeout(async () => {
     try {
@@ -517,29 +535,43 @@ onUnmounted(() => {
               </div>
             </div>
             <p class="mt-2 text-[11px] text-slate-500">
-              Resultados: {{ searchResults.length }} productos encontrados
-              <span v-if="searchQuery.length === 0" class="text-slate-600"> — escriba para comenzar la búsqueda</span>
+              <span v-if="searchQuery.length === 0">
+                Catálogo completo: <strong class="text-slate-300">{{ searchResults.length }}</strong> productos en inventario
+              </span>
+              <span v-else>
+                <strong class="text-slate-300">{{ searchResults.length }}</strong> resultados para «{{ searchQuery }}»
+              </span>
             </p>
           </div>
 
           <!-- Search Results -->
           <div class="max-h-[50vh] overflow-y-auto">
-            <div v-if="searchResults.length === 0 && searchQuery.length > 0 && !searchLoading" class="py-12 text-center text-slate-400">
+            <!-- Loading State -->
+            <div v-if="searchLoading" class="py-12 text-center text-slate-400">
+              <span class="inline-block w-6 h-6 border-2 border-slate-600 border-t-sky-500 rounded-full animate-spin mb-3"></span>
+              <p class="text-sm">Cargando productos...</p>
+            </div>
+
+            <!-- No Results -->
+            <div v-else-if="searchResults.length === 0 && searchQuery.length > 0" class="py-12 text-center text-slate-400">
               <div class="text-3xl mb-2">🔍</div>
               <p class="text-sm">No se encontraron productos con «{{ searchQuery }}»</p>
             </div>
 
-            <div v-if="searchResults.length === 0 && searchQuery.length === 0" class="py-12 text-center text-slate-400">
+            <!-- Empty Inventory -->
+            <div v-else-if="searchResults.length === 0" class="py-12 text-center text-slate-400">
               <div class="text-3xl mb-2">📦</div>
-              <p class="text-sm">Escriba al menos un carácter para buscar productos</p>
-              <p class="text-[11px] text-slate-500 mt-2">Busque por nombre, categoría o código de barras</p>
+              <p class="text-sm">No hay productos registrados en el inventario</p>
+              <p class="text-[11px] text-slate-500 mt-2">Agregue productos desde la sección Inventario</p>
             </div>
 
+            <!-- Results List -->
             <button
               v-for="prod in searchResults"
               :key="prod.id"
               @click="selectFromSearch(prod)"
-              class="w-full text-left px-5 py-3.5 hover:bg-slate-800/60 border-b border-slate-800/40 transition-colors flex items-center justify-between gap-4 group"
+              :disabled="prod.stock <= 0"
+              class="w-full text-left px-5 py-3.5 hover:bg-slate-800/60 border-b border-slate-800/40 transition-colors flex items-center justify-between gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div class="flex-1 min-w-0">
                 <div class="font-semibold text-sm text-slate-200 group-hover:text-white truncate">{{ prod.name }}</div>
