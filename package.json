@@ -1,7 +1,43 @@
 {
-  "name": "ferreteria-tpv",
+  "name": "@senseikatana/pos-universal",
+  "version": "1.0.0",
+  "description": "Enterprise-grade, agnostic Point of Sale (POS) and inventory management system built with Nuxt 4, Vue 3, Tailwind CSS v4, Prisma ORM, Hexagonal Architecture, and InsForge DBA support.",
+  "author": "senseikatana",
+  "license": "MIT",
+  "type": "module",
   "packageManager": "yarn@4.18.0",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare && prisma generate",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
-    "bcrypt": "^6.0.0"
+    "@prisma/client": "6.4.1",
+    "bcrypt": "^6.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.9",
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.13.10",
+    "nuxt": "^4.5.2",
+    "prisma": "6.4.1",
+    "tailwindcss": "^4.0.9",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "resolutions": {
+    "prisma": "6.4.1",
+    "@prisma/client": "6.4.1"
   }
 }

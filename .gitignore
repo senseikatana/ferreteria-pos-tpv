@@ -24,6 +24,10 @@ bun-debug.log*
 .env
 .env.local
 .env.*.local
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Cache
 .cache/

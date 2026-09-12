@@ -1,84 +1,150 @@
-# POS Ferretería PRO
+# Universal POS Core (@senseikatana/pos-universal)
 
-Sistema de punto de venta **multiusuario** para ferreterías pequeñas y medianas, escrito en Python con interfaz gráfica (CustomTkinter) y base de datos SQLite. Es la versión PRO del punto de venta gratuito de un solo usuario que se regaló en el video de YouTube "Regalo el punto de venta en Python que le hice a una ferretería (GRATIS, con código)".
+Enterprise-grade, framework-agnostic Point of Sale (POS) and inventory management platform built with **Nuxt 4**, **Vue 3**, **Tailwind CSS**, **Prisma ORM**, **Hexagonal Architecture**, and native **InsForge PostgreSQL** DBA cloud support.
 
-## ¿Qué trae la versión PRO que no trae la gratis?
+Engineered to operate seamlessly across retail, hardware stores (*ferreterías*), grocery, electronics, and general merchandise businesses.
 
-- **Multiusuario con roles**: administrador y vendedor, cada uno con su propio usuario y contraseña (hasheada con bcrypt, nunca en texto plano).
-- **Permisos por rol**: el vendedor solo ve Venta, Clientes/Fiado y Cierre de caja. Reportes y Gestión de usuarios son exclusivos del administrador.
-- **Cliente fiado**: registro de deuda por cliente, abonos parciales, saldo en tiempo real.
-- **Cierre de caja**: resumen de efectivo, tarjeta y fiado del día, con historial de cierres.
-- **Reportes**: producto más vendido, top 5 de productos, ventas totales del día, clientes con deuda pendiente.
-- **Respaldo en la nube**: copia automática/manual de la base de datos con rotación de las últimas 7 copias, lista para apuntar a una carpeta de Dropbox, OneDrive o Google Drive.
+---
 
-## Requisitos
+## 🚀 Key Features
 
-- Python 3.10 o superior.
-- Windows, macOS o Linux con interfaz gráfica (no funciona por SSH sin entorno gráfico).
+- **Domain-Agnostic Engine**: Designed for any retail niche with customizable product metadata, units (`unit`, `kg`, `meter`, `box`, `liter`), and barcode indexing.
+- **Hardware Scanner Ready**: Low-latency barcode scanner listener with automatic input focus, rapid scan buffer capture, and keyboard shortcuts.
+- **Hexagonal Architecture (Ports & Adapters)**: Strict separation of Core Domain, Application Use Cases, and Infrastructure Adapters.
+- **The 6 Essential Design Patterns**:
+  - **Singleton**: Thread-safe Prisma client and central Domain Event Bus.
+  - **Facade**: `PosFacade` unifying inventory, sales, customer debts, and cash reconciliation.
+  - **Factory**: `PaymentStrategyFactory` instantiating payment mechanisms at runtime.
+  - **Observer**: Decoupled `DomainEventBus` listening for `SaleCompleted` and `LowStock` events.
+  - **Strategy**: Pluggable `CashPaymentStrategy`, `CardPaymentStrategy`, and `CreditDebtPaymentStrategy`.
+  - **Decorator**: `withAudit` wrapping critical database queries with execution timing and error telemetry.
+- **Atomic Transactions (Zero Data Loss)**: All checkouts run within `prisma.$transaction`. Stock deduction, debt increment, and ticket issuance either commit together or roll back cleanly.
+- **Multi-Role Authentication (RBAC)**: Secure `httpOnly` JWT sessions distinguishing `ADMIN` (reports, user management, audit) from `CASHIER` (sales, fiados, daily register close).
+- **Accounts Receivable / Store Credit (*Fiado*)**: Real-time credit limits, customer debt balances, and audit logs for partial/total repayments (*abonos*).
+- **KatanaKit CDN Integration**: Direct client-side consumption of `katanakit-js@2.14.1` through ESM CDN (`https://esm.sh/katanakit-js@2.14.1`) with safe error unwrapping and network fallbacks.
+- **InsForge & PostgreSQL Ready**: Direct compatibility with InsForge DBA infrastructure and standard PostgreSQL databases.
 
-## Instalación rápida
+---
 
+## 🏛️ System Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                      Presentation Layer                     │
+│        Nuxt 4 (Vue 3) • Tailwind CSS • KatanaKit CDN        │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ HTTP / JSON
+┌──────────────────────────────▼──────────────────────────────┐
+│                    Nitro API Controllers                    │
+│   /api/auth  •  /api/sales  •  /api/products  •  /api/cash  │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│                   POS Facade (Entry Point)                   │
+│                       PosFacade.ts                          │
+└──────────────┬───────────────────────────────┬──────────────┘
+               │                               │
+┌──────────────▼──────────────┐ ┌──────────────▼──────────────┐
+│    Strategies & Factories   │ │    Observers & Event Bus    │
+│  - PaymentStrategyFactory   │ │  - DomainEventBus           │
+│  - Cash / Card / CreditDebt │ │  - SaleCompleted / LowStock │
+└──────────────┬──────────────┘ └──────────────┬──────────────┘
+               │                               │
+┌──────────────▼───────────────────────────────▼──────────────┐
+│                Secondary Adapters (Prisma ORM)              │
+│  - PrismaProductRepository   - PrismaCustomerRepository     │
+│  - PrismaSaleRepository      - PrismaCashRegisterRepository │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ TCP / Connection Pool
+┌──────────────────────────────▼──────────────────────────────┐
+│                  InsForge / PostgreSQL DB                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📦 Tech Stack
+
+| Component | Technology | Version |
+|---|---|---|
+| **Framework** | Nuxt 4 (Nitro Server) | `^4.5.2` |
+| **Frontend** | Vue 3 + Tailwind CSS | `^3.5.13` / `^3.4.17` |
+| **ORM** | Prisma ORM | `^6.19.3` |
+| **Database** | InsForge / PostgreSQL | `15+` |
+| **Service Toolkit** | KatanaKit JS (via CDN) | `^2.14.1` |
+| **Security** | Bcrypt + JSON Web Tokens | `bcrypt@6.0.0` / `jsonwebtoken@9.0.2` |
+| **Language** | TypeScript (Strict) | `^5.7.3` |
+
+---
+
+## 🛠️ Quick Start
+
+### 1. Prerequisites
+- **Node.js**: `v20.0.0` or higher (tested on Node `v26.8.1`).
+- **Yarn**: `4.x` or **npm** `10.x+`.
+
+### 2. Installation
 ```bash
-cd pos-ferreteria-pro
-pip install -r requirements.txt
-python main.py
+# Clone the repository
+git clone <repository-url>
+cd pos-astro-node
+
+# Install dependencies
+yarn install
 ```
 
-La primera vez que se ejecuta, la aplicación crea automáticamente la base de datos en `data/pos_ferreteria.db` y la llena con datos de ejemplo de una ferretería ficticia ("Ferretería El Tornillo Feliz"): productos de tornillería, clavos, herramientas, pinturas, plomería y eléctrico, además de clientes de ejemplo (algunos con deuda fiado).
-
-## Usuario y clave de demostración
-
-| Usuario     | Contraseña    | Rol       |
-|-------------|---------------|-----------|
-| `admin`     | `admin123`    | Administrador (ve todo, incluyendo Reportes y Usuarios) |
-| `vendedor`  | `vendedor123` | Vendedor (solo Venta, Clientes/Fiado y Cierre de caja) |
-
-**Importante**: cambia estas contraseñas de demostración antes de usar el sistema con datos reales de tu negocio (Menú "Usuarios" → seleccionar usuario → "Restablecer contraseña", disponible solo para el admin).
-
-## Estructura de carpetas
-
-```
-pos-ferreteria-pro/
-├── main.py                    # Punto de entrada de la aplicación
-├── config.py                  # Rutas, constantes y configuración de respaldo
-├── requirements.txt
-├── README.md
-├── MANUAL_INSTALACION.md      # Manual paso a paso para el cliente final (no técnico)
-├── data/                      # Se crea automáticamente
-│   ├── pos_ferreteria.db      # Base de datos SQLite
-│   └── respaldos_nube/        # Copias de respaldo con rotación (últimas 7)
-├── database/
-│   └── db.py                  # Esquema, datos de ejemplo y todas las consultas
-├── backup/
-│   └── backup_manager.py      # Lógica de respaldo con timestamp y rotación
-├── utils/
-│   └── seguridad.py           # Hash y verificación de contraseñas (bcrypt)
-└── ui/
-    ├── login_window.py        # Pantalla de inicio de sesión
-    ├── main_window.py         # Ventana principal con menú lateral por rol
-    ├── venta_view.py          # Pantalla de venta (código de barras + carrito)
-    ├── clientes_view.py       # Clientes y cuentas por cobrar (fiado)
-    ├── caja_view.py           # Cierre de caja del día
-    ├── reportes_view.py       # Reportes (solo admin) + respaldo manual
-    └── usuarios_view.py       # Gestión de usuarios (solo admin)
+### 3. Environment Configuration
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
 ```
 
-## Cómo funciona el lector de código de barras
+Configure your InsForge or PostgreSQL connection string:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/pos_universal?schema=public"
+JWT_SECRET="your-secure-jwt-production-secret"
+KATANAKIT_CDN_URL="https://esm.sh/katanakit-js@2.14.1"
+```
 
-El campo de "código de barras" en la pantalla de Venta es un cuadro de texto normal. Un lector de código de barras USB físico funciona exactamente como un teclado que escribe muy rápido y presiona Enter al final — por eso este mismo campo funciona tanto si el cajero teclea el código a mano como si usa una pistola lectora real, sin configuración adicional.
+### 4. Database Setup & Seed
+```bash
+# Generate Prisma Client
+yarn prisma:generate
 
-## Respaldo en la nube
+# Push schema to InsForge / PostgreSQL
+yarn prisma:push
 
-Por defecto, los respaldos se guardan en `data/respaldos_nube/` dentro del propio proyecto. Para que el respaldo realmente "suba a la nube", cambia la ruta `BACKUP_DIR` en `config.py` para que apunte a una carpeta sincronizada por tu servicio de nube preferido, por ejemplo:
+# Seed initial users, products, and customers
+yarn prisma:seed
+```
 
-- **Dropbox**: `C:\Users\TU_USUARIO\Dropbox\RespaldosFerreteria`
-- **OneDrive**: `C:\Users\TU_USUARIO\OneDrive\RespaldosFerreteria`
-- **Google Drive** (con Google Drive para escritorio): `G:\Mi unidad\RespaldosFerreteria`
+### 5. Run Development Server
+```bash
+yarn dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Una vez que `BACKUP_DIR` apunta a esa carpeta, cada respaldo que hagas (botón "Respaldar ahora" en Reportes) se sincroniza solo con la nube, porque la app de Dropbox/OneDrive/Drive vigila esa carpeta en segundo plano. Se conservan automáticamente las últimas 7 copias; las más antiguas se borran solas.
+---
 
-Ver `MANUAL_INSTALACION.md` para instrucciones detalladas paso a paso.
+## 🔑 Demo Credentials
 
-## Licencia de uso
+| Role | Username | Password | Accessible Modules |
+|---|---|---|---|
+| **Admin** | `admin` | `admin123` | POS, Customers, Cash Register, Reports, Users, Inventory |
+| **Cashier** | `vendedor` | `vendedor123` | POS, Customers (Fiado), Cash Register |
 
-Este código se entrega como parte de una recompensa de Patreon para uso del negocio del suscriptor. No está pensado para redistribución ni reventa como producto independiente.
+---
+
+## 📖 Available Scripts
+
+- `yarn dev`: Launches the Nuxt 4 development server.
+- `yarn build`: Compiles the production application.
+- `yarn preview`: Runs the compiled production build locally.
+- `yarn prisma:generate`: Generates typed Prisma Client bindings.
+- `yarn prisma:push`: Synchronizes database schema directly with InsForge/PostgreSQL.
+- `yarn prisma:seed`: Populates the database with sample inventory and customers.
+
+---
+
+## 📄 License
+MIT © senseikatana

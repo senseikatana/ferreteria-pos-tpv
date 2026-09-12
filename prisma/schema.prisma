@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String              @id @default(cuid())
+  fullName     String              @map("full_name")
+  username     String              @unique
+  passwordHash String              @map("password_hash")
+  role         String              @default("CASHIER")
+  isActive     Boolean             @default(true) @map("is_active")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  sales        Sale[]
+  cashCloses   CashRegisterClose[]
+  debtPayments DebtPayment[]
+
+  @@map("users")
+}
+
+model Product {
+  id          String     @id @default(cuid())
+  barcode     String     @unique
+  sku         String?    @unique
+  name        String
+  category    String?
+  salePrice   Float      @map("sale_price")
+  costPrice   Float      @default(0) @map("cost_price")
+  stock       Int        @default(0)
+  minStock    Int        @default(5) @map("min_stock")
+  unit        String     @default("unit")
+  isActive    Boolean    @default(true) @map("is_active")
+  metadata    String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  saleItems   SaleItem[]
+
+  @@index([barcode])
+  @@index([name])
+  @@map("products")
+}
+
+model Customer {
+  id           String        @id @default(cuid())
+  name         String
+  taxId        String?       @map("tax_id")
+  phone        String?
+  email        String?
+  address      String?
+  creditLimit  Float         @default(0) @map("credit_limit")
+  currentDebt  Float         @default(0) @map("current_debt")
+  isActive     Boolean       @default(true) @map("is_active")
+  notes        String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  sales        Sale[]
+  debtPayments DebtPayment[]
+
+  @@index([name])
+  @@map("customers")
+}
+
+model Sale {
+  id            String        @id @default(cuid())
+  userId        String        @map("user_id")
+  user          User          @relation(fields: [userId], references: [id])
+  customerId    String?       @map("customer_id")
+  customer      Customer?     @relation(fields: [customerId], references: [id])
+  total         Float
+  receivedAmount Float?       @map("received_amount")
+  changeAmount  Float?        @map("change_amount")
+  paymentMethod String        @default("CASH") @map("payment_method")
+  isVoided      Boolean       @default(false) @map("is_voided")
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  items         SaleItem[]
+
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id            String   @id @default(cuid())
+  saleId        String   @map("sale_id")
+  sale          Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId     String   @map("product_id")
+  product       Product  @relation(fields: [productId], references: [id])
+  productName   String   @map("product_name")
+  quantity      Int
+  unitPrice     Float    @map("unit_price")
+  subtotal      Float
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("sale_items")
+}
+
+model DebtPayment {
+  id         String   @id @default(cuid())
+  customerId String   @map("customer_id")
+  customer   Customer @relation(fields: [customerId], references: [id])
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id])
+  amount     Float
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("debt_payments")
+}
+
+model CashRegisterClose {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  cashTotal   Float    @map("cash_total")
+  cardTotal   Float    @map("card_total")
+  creditTotal Float    @map("credit_total")
+  grandTotal  Float    @map("grand_total")
+  salesCount  Int      @map("sales_count")
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("cash_register_closes")
+}
